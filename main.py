@@ -42,11 +42,11 @@ def try_lookup_icon(iconname, size, flags, fallback=None):
         return None
 
 document_open_icon = try_lookup_icon('document-open', 48, 0)
-terminal_icon = try_lookup_icon('utilities-terminal', 48, 0)
 gnome_saved_search_icon = try_lookup_icon('application-x-gnome-saved-search', 48, 0)
 document_duplicate_icon = try_lookup_icon('document-duplicate', 48, 0, 'edit-copy')
 folder_important_icon = try_lookup_icon('document-duplicate', 48, 0, 'important')
 executable_icon = try_lookup_icon('application-x-executable', 48, 0)
+document_duplicate_icon = try_lookup_icon('edit-copy', 48, 0)
 
 def get_icon_filename(filename,size):
 
@@ -58,25 +58,6 @@ def get_icon_filename(filename,size):
         final_filename = try_lookup_icon(icon, size, 0, 'application-x-executable')
     return final_filename
         
-def FileActionResults(extension, file):
-    logger.info('Actions for file %s' % file)
-    return [
-            ExtensionResultItem(
-                icon=document_open_icon,
-                name='Open file',
-                on_enter=OpenAction(file)
-            ),
-            ExtensionResultItem(
-                icon=document_duplicate_icon,
-                name='Copy path',
-                on_enter=CopyToClipboardAction(file)
-            ),
-            ExtensionResultItem(
-                icon=terminal_icon,
-                name='Open terminal here',
-                on_enter=extension.get_open_in_terminal_script(file)
-            )
-        ]
 
 class BalooIndexExtension(Extension):
 
@@ -85,11 +66,7 @@ class BalooIndexExtension(Extension):
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener())
         self.subscribe(ItemEnterEvent, ItemEnterEventListener())
         
-    def get_open_in_terminal_script(self, path):
-        """ Returns the script based on the type of terminal """
-        terminal_emulator = self.preferences['terminal_emulator']
-        return RunScriptAction(terminal_emulator,
-                                   [path, '--working-directory', path])
+        
     
     def get_baloo_executable(self):
         executable = self.preferences['baloo_executable']
@@ -105,7 +82,6 @@ class BalooIndexExtension(Extension):
         return executable
 
 class KeywordQueryEventListener(EventListener):
-
     def on_event(self, event, extension):
         items = []
         if not event.get_argument():
@@ -127,11 +103,11 @@ class KeywordQueryEventListener(EventListener):
                 icon = folder_important_icon
                 logger.error('File not found: %s' % result)
             items.append(ExtensionResultItem(icon=icon,
-                                                name=name,
-                                                description=description,
-                                                on_enter=RenderResultListAction(FileActionResults(extension, result))))
+                                             name=name,
+                                             description=description,
+                                             on_enter=OpenAction(result)))
 
-        # If no results found show a message
+        # If no results found, show a message
         if not items:
             items.append(ExtensionResultItem(icon=gnome_saved_search_icon,
                                              name='No results found',
@@ -142,6 +118,7 @@ class KeywordQueryEventListener(EventListener):
                                              description='Too many results'))
 
         return RenderResultListAction(items)
+
 
 
 class ItemEnterEventListener(EventListener):
